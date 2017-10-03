@@ -1,0 +1,97 @@
+Sub ReformatFromMarkUp()
+
+Dim cel As Range
+Dim selectedrange As Range
+
+Set selectedrange = Application.Selection
+
+For Each cel In selectedrange.Cells
+
+Dim tildloc() As Integer    'empty array to hold tild locations
+Dim starloc() As Integer    'asterix locations
+Dim bracketloc() As Integer 'bracket locations
+
+Dim celltxt As String   'holds the string in the selected cell
+
+Dim tildindex As Integer    'integer used to mark next position in tild array
+tildindex = 1   'initialised at 1 (first position)
+Dim starindex As Integer
+starindex = 1
+Dim bracketindex As Integer
+bracketindex = 1
+
+Dim length As Integer 'holds length of string
+Dim i As Integer    'counter
+Dim j As Integer    'counter to loop through string without markdown
+j = 1
+
+celltxt = cel.text 'take string from selected cell
+
+'calculate length of string once markdown symbols have been removed
+length = Len(celltxt)
+
+'this goes through the string
+'if character at position i is a tild, star, or bracket, then the position array lengthened and j is added to the new index
+'j is then incremented
+'if character is neither, than j is incremented
+If length > 0 Then
+    For i = 1 To length
+            If Mid(celltxt, i, 1) = "~" Then
+                ReDim Preserve tildloc(tildindex) As Integer
+                tildloc(tildindex) = j
+                tildindex = tildindex + 1
+            ElseIf Mid(celltxt, i, 1) = "*" Then
+                ReDim Preserve starloc(starindex) As Integer
+                starloc(starindex) = j
+                starindex = starindex + 1
+            ElseIf Mid(celltxt, i, 1) = "{" Then
+                ReDim Preserve bracketloc(bracketindex) As Integer
+                bracketloc(bracketindex) = j
+                bracketindex = bracketindex + 1
+            Else: j = j + 1
+            End If
+    Next i
+    
+    'delete all markdown symbols in string
+    celltxt = Replace(celltxt, "~", "")
+    celltxt = Replace(celltxt, "*", "")
+    celltxt = Replace(celltxt, "{", "")
+    'replace current string in active cell with the new markdown-less string
+    cel.Value = celltxt
+    
+    'if tildindex is 1, then there are no tilds (index will always be 1 more than are present)
+    'mod 2 = 1 checks that all the symbols are in pairs
+    'should add an elseif to give an error if there is an odd number of symbols
+    If tildindex <> 1 And tildindex Mod 2 = 1 Then
+        For i = LBound(tildloc) To UBound(tildloc) Step 2 'i is the number
+        length = tildloc(i + 1) - tildloc(i)
+        With cel.Characters(Start:=tildloc(i), length:=length).Font
+        .Underline = xlUnderlineStyleSingle
+        End With
+        Next i
+    ElseIf tildindex Mod 2 = 0 Then
+        cel.Interior.ColorIndex = 3
+    End If
+    If starindex <> 1 And starindex Mod 2 = 1 Then
+        For i = LBound(starloc) To UBound(starloc) Step 2
+        length = starloc(i + 1) - starloc(i)
+        cel.Characters(starloc(i), length).Font.Italic = True
+        Next i
+    ElseIf starindex Mod 2 = 0 Then
+        cel.Interior.ColorIndex = 3
+    End If
+    If bracketindex <> 1 And bracketindex Mod 2 = 1 Then
+        For i = LBound(bracketloc) To UBound(bracketloc) Step 2
+        length = bracketloc(i + 1) - bracketloc(i)
+        cel.Characters(Start:=bracketloc(i), length:=length).Font.Bold = True
+        Next i
+    ElseIf bracketindex Mod 2 = 0 Then
+        cel.Interior.ColorIndex = 3
+    End If
+End If
+Next cel
+End Sub
+
+Function Count(str As String, character As String) As Integer
+      Count = UBound(Split(str, character))
+End Function
